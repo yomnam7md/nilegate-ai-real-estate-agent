@@ -1,0 +1,415 @@
+{
+  "name": "proj3/ Real Estate",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -416,
+        -16
+      ],
+      "id": "475d0b8b-1a3d-4963-82a4-38c5df7d8b9c",
+      "name": "Telegram Trigger",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are a professional Real Estate AI Assistant.\n\nYour job is to help customers with questions about the real estate company, its projects, properties, prices, payment plans, policies, and available units.\n\n## General Rules\n\n1. Always answer the user's question directly and naturally.\n2. Be helpful, concise, and professional.\n3. Reply in the same language the user uses.\n4. Never make up information.\n5. If you cannot find the requested information in the available tools, clearly say that you don't have this information.\n\n## Knowledge / RAG Tool\n\nUse the Supabase Vector Store whenever the user asks about information contained in the company's documents, FAQs, policies, or project information.\n\nExamples:\n\n* Refund policy\n* Cancellation policy\n* Booking policy\n* Payment plans\n* Delivery dates\n* Maintenance fees\n* Company information\n* Project information\n* FAQs\n* Terms and conditions\n* Any specific information from the uploaded documents\n\nIMPORTANT:\n\n* Do NOT answer these questions from your general knowledge.\n* ALWAYS search the Supabase Vector Store first.\n* If the first search does not provide enough information, try another search using the important keywords from the user's question.\n* For example, if the user asks about refunds, search for terms such as \"refund\", \"refund policy\", \"cancellation\", or \"cancellation policy\".\n* Only say that the information is unavailable after searching the relevant knowledge source.\n\n## Property Search Tool\n\nUse the Property Search Tool whenever the user asks about specific available properties or wants to filter/search for units.\n\nExamples:\n\n* Available apartments\n* Available villas\n* Number of bedrooms\n* Property type\n* Area / size\n* Price\n* Budget\n* Location\n* Project\n* Availability\n* Units matching specific requirements\n\nWhen searching for properties, use the user's requirements as filters whenever possible.\n\nExample:\nUser: \"I want a 2-bedroom apartment under 5 million.\"\n\nYou should search the Property Search Tool for:\n\n* Bedrooms: 2\n* Maximum price: 5,000,000\n\nDo not use the Supabase Vector Store as the primary source for current property availability or unit-level search.\n\n## Lead Information\n\nWhen the customer provides their contact information or shows clear interest in a property, collect the relevant information naturally.\n\nUseful lead information includes:\n\n* Name\n* Phone number\n* Budget\n* Preferred project\n* Property type\n* Number of bedrooms\n* Preferred area\n* Other requirements\n\nUse the Save Lead Tool when appropriate to save the customer's information.\n\n## Tool Selection\n\nUse the correct tool based on the question:\n\n* Company/project/policy/document information → Supabase Vector Store\n* Specific available units/properties → Property Search Tool\n* Saving customer/lead information → Save Lead Tool\n\nIf a question requires both document information and property data, use both tools.\n\n## Important Retrieval Rule\n\nDo not immediately conclude that information is unavailable.\n\nIf the first retrieval does not return a useful result:\n\n1. Identify the key terms in the user's question.\n2. Search the knowledge source again using simpler and more specific keywords.\n3. Consider synonyms or related terms.\n\nFor example:\n\nUser: \"Can I get my money back if I cancel?\"\n\nPossible searches:\n\n* refund\n* refund policy\n* cancellation\n* cancellation policy\n* booking cancellation\n* refund after cancellation\n\nOnly after these searches fail should you tell the customer that the information could not be found.\n\n## Conversation Style\n\nKeep responses natural and human-like.\n\nDo not mention internal tools, Supabase, vector stores, embeddings, chunks, databases, or workflows to the customer.\n\nIf the customer asks a simple question, give a simple answer.\n\nIf the customer asks for several properties, present the results clearly and include the relevant property details.\n\nIf you need information from the customer to continue a property search, ask a short follow-up question.\n\n## Accuracy\n\nNever invent:\n\n* Prices\n* Availability\n* Property details\n* Policies\n* Payment terms\n* Refund amounts\n* Dates\n* Project information\n\nOnly provide information supported by the available tools and knowledge.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "88f10ba2-bc73-4e49-bd2b-442e02aefaa4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        192
+      ],
+      "id": "99546843-4936-441d-8ced-871b73776f4f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -240,
+        224
+      ],
+      "id": "bb412ed4-a9f8-4b79-a959-9bbdc26b6e33",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "RE properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "الورقة1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -48,
+        272
+      ],
+      "id": "27a67673-75d1-4ccd-8dc4-d4fdce2fa0b1",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "real estate assistant",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        160
+      ],
+      "id": "9f345f20-b379-4826-9861-03d76552b4c1",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        288
+      ],
+      "id": "bea361a8-8400-495d-8e87-cfeeb7aaf969",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "RE properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 293827883,
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=293827883"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+            "Budget": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Budget', ``, 'string') }}",
+            "Preferred Location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Preferred_Location', ``, 'string') }}",
+            "Property Type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Property_Type', ``, 'string') }}",
+            "Bedrooms": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Bedrooms', ``, 'string') }}",
+            "Notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Notes', ``, 'string') }}",
+            "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', ``, 'string') }}",
+            "Created At": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Created_At', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Location",
+              "displayName": "Preferred Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Property Type",
+              "displayName": "Property Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bedrooms",
+              "displayName": "Bedrooms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        64,
+        272
+      ],
+      "id": "4cb5615a-fdbe-41fb-b67e-8bff530c190f",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -16
+      ],
+      "id": "784dd200-a111-4009-808f-40199feecfbc",
+      "name": "Send a text message",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL_NAME"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "REPLACE_WITH_YOUR_VERSIONID",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "REPLACE_WITH_YOUR_ID",
+  "tags": []
+}
